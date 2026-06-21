@@ -15,10 +15,13 @@
   "description": "",
   "dependencies": {
     "-": "^0.0.1-security.1",
+    "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
-    "mongoose": "^9.7.1"
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.7.1",
+    "mongoose-aggregate-paginate-v2": "^1.1.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.14",
