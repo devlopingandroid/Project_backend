@@ -75,6 +75,18 @@ const videoSchema = new Schema(
             type: [String],
             default: [],
         },
+        category: {
+       type: String,
+       trim: true,
+       default: "General",
+       index: true,
+       },
+       slug: {
+      type: String,
+      unique: true,
+      lowercase: true,
+      trim: true,
+     },
     },
     {
         timestamps: true,   // createdAt, updatedAt
@@ -83,9 +95,15 @@ const videoSchema = new Schema(
 
 // Compound indexes for common query patterns
 videoSchema.index({ owner: 1, createdAt: -1 });        // channel videos, newest first
-videoSchema.index({ isPublished: 1, createdAt: -1 });  // public feed
-videoSchema.index({ isPublished: 1, views: -1 });      // trending (high views)
+videoSchema.index({
+    status: 1,
+    createdAt: -1,
+});
 
+videoSchema.index({
+    status: 1,
+    views: -1,
+});
 // Full-text search index on title + description
 videoSchema.index({ title: "text", description: "text" });
 

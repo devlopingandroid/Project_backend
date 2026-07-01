@@ -64,8 +64,10 @@ class VideoRepository {
      * Toggle publish status
      */
     async togglePublish(video) {
-        video.isPublished = !video.isPublished;
-
+        video.status =
+    video.status === "published"
+        ? "private"
+        : "published";
         return await video.save({
             validateBeforeSave: false,
         });

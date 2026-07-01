@@ -1,9 +1,12 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-
+import commentRouter from "./routes/comment.routes.js";
 import userRouter from "./routes/user.routes.js";
 import videoRouter from "./routes/video.routes.js";
+import watchRouter from "./routes/watch.routes.js";
+import likeRouter from "./routes/like.routes.js";
+
 
 const app = express();
 
@@ -25,5 +28,7 @@ console.log("✅ userRouter =", userRouter);
 
 app.use("/users", userRouter);
 app.use("/videos", videoRouter);
-
+app.use("/watch", watchRouter);
+app.use("/likes", likeRouter);
+app.use("/comments", commentRouter);
 export { app };

@@ -53,16 +53,16 @@ class VideoService {
                 duration: videoUpload.duration || 0,
 
                 views: 0,
-                isPublished: true,
+               status: "published",
             });
 
             return createdVideo;
         } catch (error) {
             // Rollback uploaded files
            await Promise.all([
-    deleteFromCloudinary(videoUpload.public_id, "video"),
-    deleteFromCloudinary(thumbnailUpload.public_id, "image"),
-]);
+         deleteFromCloudinary(videoUpload.public_id, "video"),
+         deleteFromCloudinary(thumbnailUpload.public_id, "image"),
+        ]);
 
             throw new ApiError(
                 500,
@@ -99,7 +99,7 @@ class VideoService {
         } = queryParams;
 
         const match = {
-            isPublished: true,
+            status: "published",
         };
 
         if (userId) {
