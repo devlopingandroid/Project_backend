@@ -1,6 +1,7 @@
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
+import mongoose from "mongoose";
 import User from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
@@ -122,9 +123,9 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
      const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
      const options = {
-        httpOnly: true,
-        secure: true
-     }
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production"
+}
      return res
      .status(200)
      .cookie("accessToken",accessToken,options)
@@ -189,7 +190,7 @@ try {
             httpOnly:true,
             secure: true
         }
-        const {accessToken,newRefreshToken}= await generateAccessAndRefreshTokens(user._id)
+        const {accessToken,refreshToken}= await generateAccessAndRefreshTokens(user._id)
     
          return res
          .status(200)
@@ -198,7 +199,7 @@ try {
          .json(
             new ApiResponse(
                 200,
-                {accessToken,refreshToken: newRefreshToken},
+                {accessToken,refreshToken},
                 "Access Token Refreshed"
             )
          )
@@ -229,22 +230,21 @@ const changeCurrentPassword = asyncHandler(async(req,res)=>{
 })
 
 const getCurrentUser = asyncHandler(async(req,res)=>{
-    returnres
+    return res
     .status(200)
-    .json(200,req.user,"current user fetched Successfully")
+    .json(new ApiResponse(200, req.user, "current user fetched Successfully"))
 })
 
 const updateAccountDetails = asyncHandler(async(req,res)=>{  
-    const {fullname,email}=req.body
-    if(!fullname||!email){
-        throw new ApiError(400,"Both Fields are required")
+    const {fullname}=req.body
+    if(!fullname){
+        throw new ApiError(400,"Field is required")
     }
     const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set: {
-                fullName,
-                email: email
+                fullname: fullname,
             }
         },
         {new:true}
@@ -286,7 +286,7 @@ const updateAvatar = asyncHandler(async(req,res)=>{
 const updateCoverImage = asyncHandler(async(req,res)=>{
     const coverImageLocalPath = req.file?.path
 
-    if(!avatarLocalPath){
+    if(!coverImageLocalPath){
         throw new ApiError(400,"Cover Image file is missing")
     }
 
@@ -349,7 +349,7 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
                 },
                 isSubscribed:{
                     $cond:{
-                        if : {$in:[req.user?._id,"%subscribers.subscriber"]},
+                        if : {$in:[req.user?._id,"$subscribers.subscriber"]},
                         then : true,
                         else:false
                     }
@@ -382,56 +382,66 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
 
 })
 
-const getWatchHistory = asyncHandler(async(req,res)=>{
-    const user = await User.aggregate([
+const getWatchHistory = asyncHandler(async (req, res) => {
+    const watchHistory = await User.aggregate([
         {
-        $match:{
-            _id: new mongoose.Types.ObjectId(req.user._id)
-        }
-    },
-    {
-        $lookup:{
-            from: "videos",
-            localField: "watchHistory",
-            as: "watchHistory",
-            pipeline:[
-                {
-                    $lookup:{
-                        from:"users",
-                        localField:"owner",
-                        foreignField:"_id",
-                        as:"owner",
-                        pipeline:[
-                            {
-                                $project:{
-                                    fullname:1,
-                                    username:1,
-                                    avatar:1
-                                }
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user._id),
+            },
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            let: {
+                                ownerId: "$owner",
                             },
-                            {
-                                $addFields:{
-                                    owner:{
-                                        $first: "$owner"
+                            pipeline: [
+                                {
+                                    $match: {
+                                        $expr: {
+                                            $eq: ["$_id", "$$ownerId"],
+                                        },
+                                    },
+                                },
+                                {
+                                    $project: {
+                                        fullname: 1,
+                                        username: 1,
+                                        avatar: 1,
+                                    },
+                                },
+                            ],
+                            as: "owner",
+                        },
+                    },
+                    {
+                        $addFields: {
+                            owner: {
+                                $first: "$owner",
+                            },
+                        },
+                    },
+                ],
+            },
+        },
+    ]);
 
-                                    }
-                                }
-                            }
-                        ]
-                    }
-                }
-            ]
-        }
-    } 
-    ])
-    return res
-    .status(200)
-    .json(
+    return res.status(200).json(
         new ApiResponse(
-            200,user[0].WatchHistory
+            200,
+            watchHistory[0]?.watchHistory || [],
+            "Watch history fetched successfully"
         )
-    )
+    );
 })
+
 export {
     registerUser,
     loginUser,
@@ -439,7 +449,9 @@ export {
     changeCurrentPassword,
     getCurrentUser,
     refreshAccessToken,
-    updateAvatar ,
+    updateAvatar,
     updateAccountDetails,
-    updateCoverImage
+    updateCoverImage,
+    getUserChannelProfile,
+    getWatchHistory
 };
