@@ -6,7 +6,8 @@ import userRouter from "./routes/user.routes.js";
 import videoRouter from "./routes/video.routes.js";
 import watchRouter from "./routes/watch.routes.js";
 import likeRouter from "./routes/like.routes.js";
-
+import subscriptionRouter from "./routes/subscription.routes.js";
+import playlistRouter from "./routes/playlist.routes.js";
 
 const app = express();
 
@@ -31,4 +32,6 @@ app.use("/videos", videoRouter);
 app.use("/watch", watchRouter);
 app.use("/likes", likeRouter);
 app.use("/comments", commentRouter);
+app.use("/subscriptions", subscriptionRouter);
+app.use("/playlists", playlistRouter);
 export { app };
